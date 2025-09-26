@@ -9,6 +9,14 @@ namespace imageprocessor
 {
     public class ImageHander
     {
-        public Bitmap MyProperty { get; set; }
+        public static Bitmap Load(string path)
+        {
+            return new Bitmap(path);
+        }
+
+        public static void Save(Bitmap bitmap, string path)
+        {
+            bitmap.Save(path);
+        }
     }
 }
