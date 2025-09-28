@@ -31,7 +31,7 @@ namespace imageprocessor.Filters
                 {
                     byte* row = basePointer + (y * stride); // pointer to start of row
 
-                    for (int x = 0; x < width * 3; ++x)//increase value before using it
+                    for (int x = 0; x < width * 3; x++)
                     {
                         row[x] = (byte)(255 - row[x]); //negation formula
                     }
