@@ -91,7 +91,7 @@ namespace imageprocessor.Filters
                 {
                     byte* row = basePointer + (y * stride); // pointer to start of row
 
-                    for (int x = 0; x < width; ++x)
+                    for (int x = 0; x < width; ++x)//increase value before using it
                     {
                         byte b = row[0];
                         byte g = row[1];
