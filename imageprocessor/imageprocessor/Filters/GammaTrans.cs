@@ -10,7 +10,7 @@ namespace imageprocessor.Filters
 {
     public class GammaTrans
     {
-        public Bitmap ApplyGamma(Bitmap bitmapOriginal, int redGamma, int greenGamma, int blueGamma)
+        public Bitmap ApplyGamma(Bitmap bitmapOriginal, double redGamma, double greenGamma, double blueGamma)
         {
             int width = bitmapOriginal.Width;
             int height = bitmapOriginal.Height;
