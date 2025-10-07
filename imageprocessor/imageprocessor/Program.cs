@@ -115,6 +115,12 @@ namespace imageprocessor
             string laplacePath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_laplace.bmp";
             laplacedUglyCat.Save(laplacePath);
 
+            //Sobel
+            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
+            Sobel sobel = new Sobel();
+            Bitmap sobelCat = sobel.ApplySobel(rawUglycat);
+            string outputPathSobel = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_scarycat_sobel.bmp";
+            sobelCat.Save(outputPathSobel);
 
             ;
         }
