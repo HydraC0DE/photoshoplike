@@ -134,10 +134,18 @@ namespace imageprocessor
             //gauss
             rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
             GaussianFilter gFilter = new GaussianFilter();
-            Bitmap gaussianFastCat = gFilter.ApplyGaussianFilterFast(new Bitmap(rawUglycat));
+            Bitmap gaussianUglyCat = gFilter.ApplyGaussianFilterFast(new Bitmap(rawUglycat));
             string outputPathGaussian = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gauss.bmp";
-            gaussianFastCat.Save(outputPathGaussian);
+            gaussianUglyCat.Save(outputPathGaussian);
 
+
+
+            //feature point
+            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
+            FeaturePoint featurePoint = new FeaturePoint();
+            Bitmap featureUglyCat = featurePoint.DetectCorners(new Bitmap(rawUglycat));
+            string outputFeatureDetect = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_detectcorners.bmp";
+            featureUglyCat.Save(outputFeatureDetect);
             ;
         }
     }
