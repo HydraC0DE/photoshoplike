@@ -122,6 +122,22 @@ namespace imageprocessor
             string outputPathSobel = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_scarycat_sobel.bmp";
             sobelCat.Save(outputPathSobel);
 
+
+            //box
+            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
+            BoxFilter bFilter = new BoxFilter();
+            Bitmap boxCat = bFilter.ApplyBoxFilter(new Bitmap(rawUglycat));
+            string outputPathBox = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_box.bmp";
+            boxCat.Save(outputPathBox);
+
+
+            //gauss
+            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
+            GaussianFilter gFilter = new GaussianFilter();
+            Bitmap gaussianFastCat = gFilter.ApplyGaussianFilterFast(new Bitmap(rawUglycat));
+            string outputPathGaussian = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gauss.bmp";
+            gaussianFastCat.Save(outputPathGaussian);
+
             ;
         }
     }
