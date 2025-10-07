@@ -107,6 +107,15 @@ namespace imageprocessor
 
             Console.WriteLine("\nHistogram test finished.");
 
+
+            //Laplace
+            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
+            Laplace laplace = new Laplace();
+            Bitmap laplacedUglyCat = laplace.ApplyLaplace4(rawUglycat);
+            string laplacePath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_laplace.bmp";
+            laplacedUglyCat.Save(laplacePath);
+
+
             ;
         }
     }

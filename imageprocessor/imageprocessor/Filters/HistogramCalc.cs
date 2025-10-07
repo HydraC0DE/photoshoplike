@@ -186,7 +186,7 @@ namespace imageprocessor.Filters
                 }
             }
 
-            return histImage; // <- instead of saving
+            return histImage;
         }
 
     }
