@@ -168,7 +168,7 @@ namespace imageprocessor.Filters
             return (redHistNorm, greenHistNorm, blueHistNorm); //redHistNorm[100] = 0.05 means that 5% of al pixels have red = 100
         }
 
-        public void HistogramGraph(Bitmap bitmapOriginal)
+        public Bitmap HistogramGraph(Bitmap bitmapOriginal)
         {
             int[] histogram = CalculateHistogram8Bit(bitmapOriginal);
             int width = 256; // one pixel per intensity
@@ -185,8 +185,9 @@ namespace imageprocessor.Filters
                     g.FillRectangle(Brushes.Black, i, height - barHeight, 1, barHeight);
                 }
             }
-            histImage.Save("histogram.png");
 
+            return histImage; // <- instead of saving
         }
+
     }
 }

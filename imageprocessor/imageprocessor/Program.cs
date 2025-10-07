@@ -64,28 +64,36 @@ namespace imageprocessor
             logtransbase.Save(outputPathLogaritmicBase);
 
 
-            Console.WriteLine("Histogram test starting...");
+            
 
             string imagePath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\darkscarycat_raw.png";
             Bitmap originalBitmap = new Bitmap(imagePath);
 
-            HistogramCalc histCalc = new HistogramCalc();
+
+            // Histogram test using external save
+            rawDarkScaryCat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\darkscarycat_raw.png");
+
+            // Convert to grayscale first
             Grayscale gs = new Grayscale();
+            Bitmap grayBitmapHistogram = gs.Apply8BitImage(new Bitmap(rawDarkScaryCat));
 
-            // --- 8-bit grayscale histogram ---
-            Bitmap grayBitmap = gs.Apply8BitImage(originalBitmap); // convert to 8-bit grayscale
-            int[] grayHist = histCalc.CalculateHistogram8Bit(grayBitmap);
-            int[] grayCumulative = histCalc.CalculateCumulativeHistogram8bit(grayHist);
-            double[] grayNorm = histCalc.CalculateNormalisedHistogram8Bit(grayBitmap);
+            // Create histogram calculator
+            HistogramCalc histCalc = new HistogramCalc();
 
-            Console.WriteLine("8-bit grayscale histogram:");
-            Console.WriteLine($"Gray level 100 count: {grayHist[100]}");
-            Console.WriteLine($"Cumulative at 100: {grayCumulative[100]}");
-            Console.WriteLine($"Normalized at 100: {grayNorm[100]:F4}");
+            // Generate histogram data
+            int[] histogram = histCalc.CalculateHistogram8Bit(grayBitmapHistogram);
+            int[] cumulativeHistogram = histCalc.CalculateCumulativeHistogram8bit(histogram);
+            double[] normalizedHistogram = histCalc.CalculateNormalisedHistogram8Bit(grayBitmapHistogram);
 
-            // Generate graph for grayscale
-            histCalc.HistogramGraph(grayBitmap);
-            Console.WriteLine("Grayscale histogram graph saved as histogram.png");
+            // Create histogram graph as bitmap
+            Bitmap histogramGraph = histCalc.HistogramGraph(grayBitmapHistogram); // <- you’ll need to modify this to *return Bitmap* instead of saving internally
+
+            // Save the graph manually like the other filters
+            string outputPathHistogramGraph = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_scarycat_histogram_base.bmp";
+            histogramGraph.Save(outputPathHistogramGraph);
+
+            Console.WriteLine("Histogram graph saved at: " + outputPathHistogramGraph);
+
 
             // --- RGB histogram ---
             var (rHist, gHist, bHist) = histCalc.CalculateHistogram(originalBitmap);
