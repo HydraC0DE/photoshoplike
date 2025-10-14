@@ -8,19 +8,27 @@ namespace imageprocessor
         static void Main(string[] args)
         {
             Console.WriteLine("Hello, World!");
-            Bitmap rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
 
+
+            //grayscale
+            Bitmap rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
             Grayscale grayscale = new Grayscale();
             Bitmap grayImage = grayscale.FastApply(rawUglycat);
-
             string outputPath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gray.bmp";
             grayImage.Save(outputPath);
+
+            //grayscale8bit
+            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
+            Bitmap gray8bit = grayscale.Apply8BitImage(new Bitmap(rawUglycat));
+            string outputPath8bit = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gray8bit.bmp";
+            gray8bit.Save(outputPath8bit);
+
             //negate
             rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
             Negation negation = new Negation();
-            Bitmap grayImageHighBitDepth = negation.Negate(rawUglycat);
+            Bitmap Negate = negation.Negate(new Bitmap(rawUglycat));
             string outputPath2 = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_negate.bmp";
-            grayImageHighBitDepth.Save(outputPath2);
+            Negate.Save(outputPath2);
 
 
 
@@ -147,6 +155,14 @@ namespace imageprocessor
             string outputFeatureDetect = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_detectcorners.bmp";
             featureUglyCat.Save(outputFeatureDetect);
             ;
+
+
+            //histogramequal
+            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
+            HistogramEqualization histEq = new HistogramEqualization();
+            Bitmap histEqUglyCat = histEq.HistogramEqualize(new Bitmap(rawUglycat));
+            string outputHisEq = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_histogramEQ.bmp";
+            histEqUglyCat.Save(outputHisEq);
         }
     }
 }
