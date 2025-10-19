@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -6,6 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Numerics;
 
 namespace imageprocessor.Filters
 {
@@ -16,99 +18,219 @@ namespace imageprocessor.Filters
             int width = bitmapOriginal.Width;
             int height = bitmapOriginal.Height;
 
-            // reduce to 8 bit greyscale image and index pixels
-            Bitmap grayBitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format8bppIndexed);
-            ColorPalette palette = grayBitmap.Palette;
-            for (int i = 0; i < 256; i++)
-            {
-                palette.Entries[i] = Color.FromArgb(i, i, i); //fill up palette from black to white
-            }
-            grayBitmap.Palette = palette;
+            // Create new 8-bit grayscale bitmap
+            Bitmap bmp8 = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
 
-            BitmapData sourceData = bitmapOriginal.LockBits( //lock the source
-                new Rectangle(0, 0, width, height),//entire image
+            // Set grayscale palette
+            ColorPalette palette = bmp8.Palette;
+            for (int i = 0; i < 256; i++)
+                palette.Entries[i] = Color.FromArgb(i, i, i);
+            bmp8.Palette = palette;
+
+            // Lock source and destination
+            BitmapData srcData = bitmapOriginal.LockBits(
+                new Rectangle(0, 0, width, height),
                 ImageLockMode.ReadOnly,
                 PixelFormat.Format24bppRgb);
 
-            BitmapData grayData = grayBitmap.LockBits( //lock the destination
+            BitmapData dstData = bmp8.LockBits(
                 new Rectangle(0, 0, width, height),
                 ImageLockMode.WriteOnly,
                 PixelFormat.Format8bppIndexed);
 
-            int srcStride = sourceData.Stride; //byte amount in memory, per row, including padding so we dont index too early 
-            int grayStride = grayData.Stride;
+            int srcStride = srcData.Stride;
+            int dstStride = dstData.Stride;
+
+            IntPtr srcScan0 = srcData.Scan0;
+            IntPtr dstScan0 = dstData.Scan0;
+
+            const int rFactor = 77;
+            const int gFactor = 150;
+            const int bFactor = 29;
 
             unsafe
             {
-                byte* srcPtr = (byte*)sourceData.Scan0; // pointer to first source pixel
-                byte* grayPtr = (byte*)grayData.Scan0;  // pointer to first dest pixel
+                byte* srcBase = (byte*)srcScan0;
+                byte* dstBase = (byte*)dstScan0;
 
-                Parallel.For(0, height, y => //parallel for to optimize runtime, each thread works on different rows so safew
+                var range = Partitioner.Create(0, height, Math.Max(1, height / Environment.ProcessorCount));
+                Parallel.ForEach(range, (rangeSegment) =>
                 {
+                    for (int y = rangeSegment.Item1; y < rangeSegment.Item2; y++)
+                    {
+                        byte* srcRow = srcBase + y * srcStride;
+                        byte* dstRow = dstBase + y * dstStride;
+                        int x = 0;
 
-                    byte* srcRow = srcPtr + (y * srcStride);   // start of current row in source
-                    byte* grayRow = grayPtr + (y * grayStride); // start of current row in dest
+                        int maxUnroll = width - 3;
+                        for (; x < maxUnroll; x += 4)
+                        {
+                            // pixel 0
+                            {
+                                byte b = srcRow[0];
+                                byte g = srcRow[1];
+                                byte r = srcRow[2];
+                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                                dstRow[0] = gray;
+                                srcRow += 3;
+                                dstRow += 1;
+                            }
+                            // pixel 1
+                            {
+                                byte b = srcRow[0];
+                                byte g = srcRow[1];
+                                byte r = srcRow[2];
+                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                                dstRow[0] = gray;
+                                srcRow += 3;
+                                dstRow += 1;
+                            }
+                            // pixel 2
+                            {
+                                byte b = srcRow[0];
+                                byte g = srcRow[1];
+                                byte r = srcRow[2];
+                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                                dstRow[0] = gray;
+                                srcRow += 3;
+                                dstRow += 1;
+                            }
+                            // pixel 3
+                            {
+                                byte b = srcRow[0];
+                                byte g = srcRow[1];
+                                byte r = srcRow[2];
+                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                                dstRow[0] = gray;
+                                srcRow += 3;
+                                dstRow += 1;
+                            }
+                        }
 
-               
-                    for (int x = 0; x < width; x++)
-                    { // b g r order for no reason at all ?
-                        byte b = srcRow[x * 3]; //get byte values from source
-                        byte g = srcRow[x * 3 + 1];
-                        byte r = srcRow[x * 3 + 2];
-
-                        //luminosity formula
-                        byte gray = (byte)(0.299 * r + 0.587 * g + 0.114 * b);
-
-                        grayRow[x] = gray;
+                        // remaining pixels
+                        for (; x < width; x++)
+                        {
+                            byte b = srcRow[0];
+                            byte g = srcRow[1];
+                            byte r = srcRow[2];
+                            byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                            dstRow[0] = gray;
+                            srcRow += 3;
+                            dstRow += 1;
+                        }
                     }
                 });
             }
 
-            bitmapOriginal.UnlockBits(sourceData);
-            grayBitmap.UnlockBits(grayData);
+            bitmapOriginal.UnlockBits(srcData);
+            bmp8.UnlockBits(dstData);
 
-            return grayBitmap;
+            return bmp8;
         }
 
-        public Bitmap FastApply(Bitmap bitmapOriginal)
+
+        public Bitmap FastApply(Bitmap bitmapOriginal) //91 ms
         {
             int width = bitmapOriginal.Width;
             int height = bitmapOriginal.Height;
 
-            BitmapData bitmapData = bitmapOriginal.LockBits(
-                new Rectangle(0, 0, bitmapOriginal.Width, bitmapOriginal.Height),
+            BitmapData bmpData = bitmapOriginal.LockBits(
+                new Rectangle(0, 0, width, height),
                 ImageLockMode.ReadWrite,
                 PixelFormat.Format24bppRgb);
 
-            int stride = bitmapData.Stride; //byte amount in memory, per row, including padding so we dont index too early 
-            IntPtr Scan0 = bitmapData.Scan0; //first byte pointer
+            int stride = bmpData.Stride;
+            IntPtr scan0 = bmpData.Scan0;
+
+            // this was used in official libraries
+            const int rFactor = 77;   // ≈ 0.299 × 256
+            const int gFactor = 150;  // ≈ 0.587 × 256
+            const int bFactor = 29;   // ≈ 0.114 × 256
 
             unsafe
             {
-                byte* basePointer = (byte*)Scan0;
+                byte* basePtr = (byte*)scan0;
 
-                Parallel.For(0, height, y =>
+                // Partition rows
+                var range = Partitioner.Create(0, height, Math.Max(1, height / Environment.ProcessorCount)); //devide into chunks (tuples) roughly height / number of cores
+                Parallel.ForEach(range, (rangeSegment) =>
                 {
-                    byte* row = basePointer + (y * stride); // pointer to start of row
-
-                    for (int x = 0; x < width; x++)
+                    for (int y = rangeSegment.Item1; y < rangeSegment.Item2; y++)
                     {
-                        byte b = row[0];
-                        byte g = row[1];
-                        byte r = row[2];
+                        byte* row = basePtr + y * stride;
+                        int x = 0;
 
-                        // grayscale formula
-                        byte gray = (byte)(.299 * r + .587 * g + .114 * b);
+                        // Process 4 pixels per iteration as unrolling
+                        int maxUnroll = width - 3;
+                        for (; x < maxUnroll; x += 4)
+                        {
+                            // pixel 0
+                            {
+                                byte b = row[0];
+                                byte g = row[1];
+                                byte r = row[2];
+                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                                row[0] = gray;
+                                row[1] = gray;
+                                row[2] = gray;
+                                row += 3;
+                            }
+                            // pixel 1
+                            {
+                                byte b = row[0];
+                                byte g = row[1];
+                                byte r = row[2];
+                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                                row[0] = gray;
+                                row[1] = gray;
+                                row[2] = gray;
+                                row += 3;
+                            }
+                            // pixel 2
+                            {
+                                byte b = row[0];
+                                byte g = row[1];
+                                byte r = row[2];
+                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                                row[0] = gray;
+                                row[1] = gray;
+                                row[2] = gray;
+                                row += 3;
+                            }
+                            // pixel 3
+                            {
+                                byte b = row[0];
+                                byte g = row[1];
+                                byte r = row[2];
+                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                                row[0] = gray;
+                                row[1] = gray;
+                                row[2] = gray;
+                                row += 3;
+                            }
+                        }
 
-                        row[0] = row[1] = row[2] = gray;
-
-                        row += 3; // move to next pixel
+                        // remaining pixels if not divisible by 4
+                        for (; x < width; x++)
+                        {
+                            byte b = row[0];
+                            byte g = row[1];
+                            byte r = row[2];
+                            byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                            row[0] = gray;
+                            row[1] = gray;
+                            row[2] = gray;
+                            row += 3;
+                        }
                     }
                 });
             }
 
-            bitmapOriginal.UnlockBits(bitmapData);
+            bitmapOriginal.UnlockBits(bmpData);
             return bitmapOriginal;
         }
+
+
+        
     }
 }

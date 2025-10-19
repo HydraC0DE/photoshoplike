@@ -1,5 +1,7 @@
-﻿using imageprocessor.Filters;
+﻿using System;
+using System.Diagnostics;
 using System.Drawing;
+using imageprocessor.Filters;
 
 namespace imageprocessor
 {
@@ -7,162 +9,109 @@ namespace imageprocessor
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            Console.WriteLine("=== Simple Filter Tester ===");
+            Console.Write("Enter full image path: ");
+            string inputPath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\8k_test.jpg"; //@""
 
 
-            //grayscale
-            Bitmap rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            Grayscale grayscale = new Grayscale();
-            Bitmap grayImage = grayscale.FastApply(rawUglycat);
-            string outputPath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gray.bmp";
-            grayImage.Save(outputPath);
+            Console.WriteLine("\nChoose a filter to apply:");
+            Console.WriteLine("1 - Grayscale (FastApply)");
+            Console.WriteLine("2 - Grayscale (8-bit)");
+            Console.WriteLine("3 - Negation");
+            Console.WriteLine("4 - Gamma (lighter)");
+            Console.WriteLine("5 - Gamma (darker)");
+            Console.WriteLine("6 - Laplace");
+            Console.WriteLine("7 - Sobel");
+            Console.WriteLine("8 - Box Filter");
+            Console.WriteLine("9 - Gaussian Filter");
+            Console.WriteLine("10 - Feature Point Detection");
+            Console.WriteLine("11 - Histogram Equalization (8-bit grayscale)");
+            Console.Write("\nEnter your choice (1–11): ");
 
-            //grayscale8bit
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            Bitmap gray8bit = grayscale.Apply8BitImage(new Bitmap(rawUglycat));
-            string outputPath8bit = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gray8bit.bmp";
-            gray8bit.Save(outputPath8bit);
+            string choice = Console.ReadLine() ?? "";
+            if (!int.TryParse(choice, out int selected) || selected < 1 || selected > 11)
+            {
+                Console.WriteLine("Invalid choice.");
+                return;
+            }
 
-            //negate
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            Negation negation = new Negation();
-            Bitmap Negate = negation.Negate(new Bitmap(rawUglycat));
-            string outputPath2 = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_negate.bmp";
-            Negate.Save(outputPath2);
+            Bitmap input = new Bitmap(inputPath);
+            Bitmap output = null!;
+            string outputPath = System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(inputPath)!,
+                $"output_{System.IO.Path.GetFileNameWithoutExtension(inputPath)}_filter{selected}.bmp"
+            );
 
-
-
-            // darker gamma
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            GammaTrans gammaDarker = new GammaTrans();
-            Bitmap darker = gammaDarker.ApplyGamma(new Bitmap(rawUglycat), 0.5, 0.5, 0.5); // lower gamma = darker
-            string outputPathDarker = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gamma_darker.bmp";
-            darker.Save(outputPathDarker);
-
-
-
-            // ligher gamma
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            GammaTrans gammaLighter = new GammaTrans();
-            Bitmap lighter = gammaLighter.ApplyGamma(new Bitmap(rawUglycat), 3, 3, 3); // higher gamma = lighter
-            string outputPathLighter = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gamma_lighter.bmp";
-            lighter.Save(outputPathLighter);
-
-
-
-            // blue gamma
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            GammaTrans gammaBlue = new GammaTrans();
-            Bitmap blueBoost = gammaBlue.ApplyGamma(new Bitmap(rawUglycat), 1, 1, 2); // make blue darker
-            string outputPathBlue = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gamma_blue.bmp";
-            blueBoost.Save(outputPathBlue);
-
-            //logarithmicHighValue
-            Bitmap rawDarkScaryCat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\darkscarycat_raw.png");
-            LogarithmicTrans logarithmicTooHigh = new LogarithmicTrans();
-            Bitmap logtranshigh = logarithmicTooHigh.ApplyLogartihmic(new Bitmap(rawDarkScaryCat), 70);
-            string outputPathLogaritmicHigh = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_scarycat_log_high.bmp";
-            logtranshigh.Save(outputPathLogaritmicHigh);
-
-            //logarithmicBaseValue
-            rawDarkScaryCat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\darkscarycat_raw.png");
-            LogarithmicTrans logarithmicBaseVal = new LogarithmicTrans();
-            Bitmap logtransbase = logarithmicBaseVal.ApplyLogartihmic(new Bitmap(rawDarkScaryCat));
-            string outputPathLogaritmicBase = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_scarycat_log_base.bmp";
-            logtransbase.Save(outputPathLogaritmicBase);
-
-
+            Stopwatch sw = new Stopwatch();
             
 
-            string imagePath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\darkscarycat_raw.png";
-            Bitmap originalBitmap = new Bitmap(imagePath);
+            switch (selected)
+            {
+                case 1:
+                    sw.Start();
+                    output = new Grayscale().FastApply(input);
+                    break;
 
+                case 2:
+                    sw.Start();
+                    output = new Grayscale().Apply8BitImage(input);
+                    break;
 
-            // Histogram test using external save
-            rawDarkScaryCat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\darkscarycat_raw.png");
+                case 3:
+                    sw.Start();
+                    output = new Negation().Negate(input);
+                    break;
 
-            // Convert to grayscale first
-            Grayscale gs = new Grayscale();
-            Bitmap grayBitmapHistogram = gs.Apply8BitImage(new Bitmap(rawDarkScaryCat));
+                case 4:
+                    sw.Start();
+                    output = new GammaTrans().ApplyGamma(input, 3, 3, 3);
+                    break;
 
-            // Create histogram calculator
-            HistogramCalc histCalc = new HistogramCalc();
+                case 5:
+                    sw.Start();
+                    output = new GammaTrans().ApplyGamma(input, 0.5, 0.5, 0.5);
+                    break;
 
-            // Generate histogram data
-            int[] histogram = histCalc.CalculateHistogram8Bit(grayBitmapHistogram);
-            int[] cumulativeHistogram = histCalc.CalculateCumulativeHistogram8bit(histogram);
-            double[] normalizedHistogram = histCalc.CalculateNormalisedHistogram8Bit(grayBitmapHistogram);
+                case 6:
+                    sw.Start();
+                    output = new Laplace().ApplyLaplace4(input);
+                    break;
 
-            // Create histogram graph as bitmap
-            Bitmap histogramGraph = histCalc.HistogramGraph(grayBitmapHistogram); // <- you’ll need to modify this to *return Bitmap* instead of saving internally
+                case 7:
+                    sw.Start();
+                    output = new Sobel().ApplySobel(input);
+                    break;
 
-            // Save the graph manually like the other filters
-            string outputPathHistogramGraph = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_scarycat_histogram_base.bmp";
-            histogramGraph.Save(outputPathHistogramGraph);
+                case 8:
+                    sw.Start();
+                    output = new BoxFilter().ApplyBoxFilter(input);
+                    break;
 
-            Console.WriteLine("Histogram graph saved at: " + outputPathHistogramGraph);
+                case 9:
+                    sw.Start();
+                    output = new GaussianFilter().ApplyGaussianFilterFast(input);
+                    break;
 
+                case 10:
+                    sw.Start();
+                    output = new FeaturePoint().DetectCorners(input);
+                    break;
 
-            // --- RGB histogram ---
-            var (rHist, gHist, bHist) = histCalc.CalculateHistogram(originalBitmap);
-            var (rCumulative, gCumulative, bCumulative) = histCalc.CalculateCumulativeHistogramRGB(rHist, gHist, bHist);
-            var (rNorm, gNorm, bNorm) = histCalc.CalculateNormalizedHistogram(originalBitmap);
+                case 11:
+                    sw.Start();
+                    output = new HistogramEqualization().HistogramEqualize(input);
+                    break;
+            }
 
-            Console.WriteLine("\nRGB histogram:");
-            Console.WriteLine($"Red level 100 count: {rHist[100]}, normalized: {rNorm[100]:F4}");
-            Console.WriteLine($"Green level 100 count: {gHist[100]}, normalized: {gNorm[100]:F4}");
-            Console.WriteLine($"Blue level 100 count: {bHist[100]}, normalized: {bNorm[100]:F4}");
+            sw.Stop();
 
-            Console.WriteLine("\nHistogram test finished.");
+            output.Save(outputPath);
+            Console.WriteLine($"\nFilter {selected} complete!");
+            Console.WriteLine($"Processing time: {sw.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Saved to: {outputPath}");
 
-
-            //Laplace
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            Laplace laplace = new Laplace();
-            Bitmap laplacedUglyCat = laplace.ApplyLaplace4(rawUglycat);
-            string laplacePath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_laplace.bmp";
-            laplacedUglyCat.Save(laplacePath);
-
-            //Sobel
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            Sobel sobel = new Sobel();
-            Bitmap sobelCat = sobel.ApplySobel(rawUglycat);
-            string outputPathSobel = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_scarycat_sobel.bmp";
-            sobelCat.Save(outputPathSobel);
-
-
-            //box
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            BoxFilter bFilter = new BoxFilter();
-            Bitmap boxCat = bFilter.ApplyBoxFilter(new Bitmap(rawUglycat));
-            string outputPathBox = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_box.bmp";
-            boxCat.Save(outputPathBox);
-
-
-            //gauss
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            GaussianFilter gFilter = new GaussianFilter();
-            Bitmap gaussianUglyCat = gFilter.ApplyGaussianFilterFast(new Bitmap(rawUglycat));
-            string outputPathGaussian = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_gauss.bmp";
-            gaussianUglyCat.Save(outputPathGaussian);
-
-
-
-            //feature point
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            FeaturePoint featurePoint = new FeaturePoint();
-            Bitmap featureUglyCat = featurePoint.DetectCorners(new Bitmap(rawUglycat));
-            string outputFeatureDetect = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_detectcorners.bmp";
-            featureUglyCat.Save(outputFeatureDetect);
-            ;
-
-
-            //histogramequal
-            rawUglycat = new Bitmap(@"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\uglycat_raw.png");
-            HistogramEqualization histEq = new HistogramEqualization();
-            Bitmap histEqUglyCat = histEq.HistogramEqualize(new Bitmap(rawUglycat));
-            string outputHisEq = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\output_uglycat_histogramEQ.bmp";
-            histEqUglyCat.Save(outputHisEq);
+            input.Dispose();
+            output.Dispose();
         }
     }
 }
