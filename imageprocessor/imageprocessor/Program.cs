@@ -84,12 +84,12 @@ namespace imageprocessor
 
                 case 8:
                     sw.Start();
-                    output = new BoxFilter().ApplyBoxFilter(input);
+                    output = new BoxFilter().ApplyBoxFilter_Fast(input);
                     break;
 
                 case 9:
                     sw.Start();
-                    output = new GaussianFilter().ApplyGaussianFilterFast(input);
+                    output = new GaussianFilter().ApplyGaussian9x9(input);
                     break;
 
                 case 10:
