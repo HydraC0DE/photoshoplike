@@ -74,7 +74,7 @@ namespace imageprocessor
 
                 case 6:
                     sw.Start();
-                    output = new Laplace().ApplyLaplace4(input);
+                    output = new Laplace().ApplyLaplace4_CacheFriendly(input);
                     break;
 
                 case 7:
