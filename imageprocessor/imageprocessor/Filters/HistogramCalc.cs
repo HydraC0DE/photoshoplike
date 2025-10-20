@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Drawing;
@@ -9,86 +10,153 @@ using System.Threading.Tasks;
 
 namespace imageprocessor.Filters
 {
-    public class HistogramCalc
+    public class HistogramCalc //Only first 2 useful and optimized, graph also unoptimzed
     {
         public int[] CalculateHistogram8Bit(Bitmap grayBitmap)
         {
             int width = grayBitmap.Width;
             int height = grayBitmap.Height;
 
-            BitmapData bitmapData = grayBitmap.LockBits(
+            BitmapData data = grayBitmap.LockBits(
                 new Rectangle(0, 0, width, height),
                 ImageLockMode.ReadOnly,
                 PixelFormat.Format8bppIndexed);
 
-            int stride = bitmapData.Stride;
-            IntPtr Scan0 = bitmapData.Scan0;
-
-            int[] histogram = new int[256];
+            int stride = data.Stride;
+            int[] globalHist = new int[256];
 
             unsafe
             {
-                byte* basePointer = (byte*)Scan0;
+                byte* basePtr = (byte*)data.Scan0;
 
-                Parallel.For(0, height, y =>
+                Parallel.ForEach(Partitioner.Create(0, height), range =>
                 {
-                    byte* row = basePointer + (y * stride);
+                    int[] localHist = new int[256];
 
-                    for (int x = 0; x < width; x++)
+                    for (int y = range.Item1; y < range.Item2; y++)
                     {
-                        byte gray = row[x]; // directly read the grayscale value
-                        System.Threading.Interlocked.Increment(ref histogram[gray]);
+                        byte* row = basePtr + y * stride;
+                        int x = 0;
+
+                        // process 4 pixels at once
+                        for (; x <= width - 4; x += 4)
+                        {
+                            uint block = *(uint*)(row + x);
+
+                            localHist[(byte)(block)]++;
+                            localHist[(byte)(block >> 8)]++;
+                            localHist[(byte)(block >> 16)]++;
+                            localHist[(byte)(block >> 24)]++;
+                        }
+
+                        // handle leftover pixels
+                        for (; x < width; x++)
+                            localHist[row[x]]++;
+                    }
+
+                    // merge into global
+                    lock (globalHist)
+                    {
+                        for (int i = 0; i < 256; i++)
+                            globalHist[i] += localHist[i];
                     }
                 });
             }
 
-            grayBitmap.UnlockBits(bitmapData);
+            grayBitmap.UnlockBits(data);
+            return globalHist;
+        } //24ms
 
-            return histogram;
-        }
-        public (int[] redHist, int[] greenHist, int[] blueHist) CalculateHistogram(Bitmap bitmapOriginal)
+        public (int[] redHist, int[] greenHist, int[] blueHist) CalculateHistogramRGB(Bitmap bitmapOriginal)
         {
             int width = bitmapOriginal.Width;
             int height = bitmapOriginal.Height;
 
-            BitmapData bitmapData = bitmapOriginal.LockBits(
-        new Rectangle(0, 0, width, height),
-        ImageLockMode.ReadWrite,
-        PixelFormat.Format24bppRgb);
+            BitmapData data = bitmapOriginal.LockBits(
+                new Rectangle(0, 0, width, height),
+                ImageLockMode.ReadOnly,
+                PixelFormat.Format24bppRgb);
 
-            int stride = bitmapData.Stride;
-            IntPtr Scan0 = bitmapData.Scan0;
-
-            int[] redHist = new int[256];
-            int[] greenHist = new int[256];
-            int[] blueHist = new int[256];
+            int stride = data.Stride;
+            int[] red = new int[256];
+            int[] green = new int[256];
+            int[] blue = new int[256];
 
             unsafe
             {
-                byte* basePointer = (byte*)Scan0;
+                byte* basePtr = (byte*)data.Scan0;
 
-                Parallel.For(0, height, y =>
+                Parallel.ForEach(Partitioner.Create(0, height), range =>
                 {
-                    byte* row = basePointer + (y * stride);
-                    for (int x = 0; x < width; x++)
+                    int[] rLocal = new int[256];
+                    int[] gLocal = new int[256];
+                    int[] bLocal = new int[256];
+
+                    for (int y = range.Item1; y < range.Item2; y++)
                     {
-                        byte b = row[x * 3 + 0];
-                        byte g = row[x * 3 + 1];
-                        byte r = row[x * 3 + 2];
+                        byte* row = basePtr + y * stride;
+                        int x = 0;
 
+                        int maxUnroll = width - 3;
 
-                        System.Threading.Interlocked.Increment(ref redHist[r]); //avoid parallel issues
-                        System.Threading.Interlocked.Increment(ref greenHist[g]);
-                        System.Threading.Interlocked.Increment(ref blueHist[b]);
+                        // unroll 4 pixels per iteration
+                        for (; x < maxUnroll; x += 4)
+                        {
+                            // pixel 0
+                            {
+                                bLocal[row[0]]++;
+                                gLocal[row[1]]++;
+                                rLocal[row[2]]++;
+                                row += 3;
+                            }
+                            // pixel 1
+                            {
+                                bLocal[row[0]]++;
+                                gLocal[row[1]]++;
+                                rLocal[row[2]]++;
+                                row += 3;
+                            }
+                            // pixel 2
+                            {
+                                bLocal[row[0]]++;
+                                gLocal[row[1]]++;
+                                rLocal[row[2]]++;
+                                row += 3;
+                            }
+                            // pixel 3
+                            {
+                                bLocal[row[0]]++;
+                                gLocal[row[1]]++;
+                                rLocal[row[2]]++;
+                                row += 3;
+                            }
+                        }
+
+                        // remaining pixels
+                        for (; x < width; x++)
+                        {
+                            bLocal[row[0]]++;
+                            gLocal[row[1]]++;
+                            rLocal[row[2]]++;
+                            row += 3;
+                        }
+                    }
+
+                    lock (red)
+                    {
+                        for (int i = 0; i < 256; i++)
+                        {
+                            red[i] += rLocal[i];
+                            green[i] += gLocal[i];
+                            blue[i] += bLocal[i];
+                        }
                     }
                 });
             }
 
-
-            bitmapOriginal.UnlockBits(bitmapData);
-
-            return (redHist, greenHist, blueHist);
-        }
+            bitmapOriginal.UnlockBits(data);
+            return (red, green, blue);
+        } //100 ms
 
         public int[] CalculateCumulativeHistogram8bit(int[] histogram)
         {
@@ -152,7 +220,7 @@ namespace imageprocessor.Filters
             int totalPixels = width * height;
 
             // first, get the regular histogram
-            var (redHist, greenHist, blueHist) = CalculateHistogram(bitmapOriginal);
+            var (redHist, greenHist, blueHist) = CalculateHistogramRGB(bitmapOriginal);
 
             double[] redHistNorm = new double[256];
             double[] greenHistNorm = new double[256];

@@ -10,7 +10,7 @@ namespace imageprocessor.Filters
 {
     public class HistogramEqualization
     {
-        public Bitmap HistogramEqualize(Bitmap b)
+        public Bitmap HistogramEqualize(Bitmap b) //268
         {
             int width = b.Width;
             int height = b.Height;

@@ -1,7 +1,8 @@
-﻿using System;
+﻿using imageprocessor.Filters;
+using System;
 using System.Diagnostics;
 using System.Drawing;
-using imageprocessor.Filters;
+using System.Drawing.Imaging;
 
 namespace imageprocessor
 {
@@ -24,12 +25,16 @@ namespace imageprocessor
             Console.WriteLine("7 - Sobel");
             Console.WriteLine("8 - Box Filter");
             Console.WriteLine("9 - Gaussian Filter");
-            Console.WriteLine("10 - Feature Point Detection");
-            Console.WriteLine("11 - Histogram Equalization (8-bit grayscale)");
-            Console.Write("\nEnter your choice (1–11): ");
+            Console.WriteLine("10 - Gaussian Filter (9x9)");
+            Console.WriteLine("11 - Feature Point Detection");
+            Console.WriteLine("12 - Histogram");
+            Console.WriteLine("13 - 3 Channel histogram");
+            Console.WriteLine("14 - histogram equali");
+            Console.WriteLine("15 - log");
+            Console.Write("\nEnter your choice (1–12): ");
 
             string choice = Console.ReadLine() ?? "";
-            if (!int.TryParse(choice, out int selected) || selected < 1 || selected > 11)
+            if (!int.TryParse(choice, out int selected) || selected < 1 || selected > 15)
             {
                 Console.WriteLine("Invalid choice.");
                 return;
@@ -43,8 +48,10 @@ namespace imageprocessor
             );
 
             Stopwatch sw = new Stopwatch();
-            
 
+            bool histogramGraph = false;
+            bool threeChannelHistogram = false;
+            Bitmap grayBitmap = null;//null for now
             switch (selected)
             {
                 case 1:
@@ -89,22 +96,53 @@ namespace imageprocessor
 
                 case 9:
                     sw.Start();
-                    output = new GaussianFilter().ApplyGaussian9x9(input);
+                    output = new GaussianFilter().ApplyGaussianFilterFast(input);
                     break;
 
                 case 10:
                     sw.Start();
-                    output = new FeaturePoint().DetectCorners(input);
+                    output = new GaussianFilter().ApplyGaussian9x9(input);
                     break;
 
                 case 11:
                     sw.Start();
+                    output = new FeaturePoint().DetectCornersFast(input);
+                    break;
+
+                case 12:
+                    grayBitmap = new Grayscale().Apply8BitImage(input);
+                    sw.Start();
+                    var outputForHistogram = new HistogramCalc().CalculateHistogram8Bit(grayBitmap);
+                    histogramGraph = true;
+                    break;
+
+                case 13:
+                    sw.Start();
+                    var outputForHistogram2 = new HistogramCalc().CalculateHistogramRGB(input);
+                    threeChannelHistogram = true;
+                    break;
+
+                case 14:
+                    sw.Start();
                     output = new HistogramEqualization().HistogramEqualize(input);
+                    break;
+
+                case 15:
+                    sw.Start();
+                    output = new LogarithmicTrans().ApplyLog(input);
                     break;
             }
 
             sw.Stop();
-
+            
+            if (histogramGraph)
+            {
+                output = new HistogramCalc().HistogramGraph(grayBitmap);
+            }
+            if (threeChannelHistogram)
+            {
+                output = input; //do nothing :)
+            }
             output.Save(outputPath);
             Console.WriteLine($"\nFilter {selected} complete!");
             Console.WriteLine($"Processing time: {sw.ElapsedMilliseconds} ms");
