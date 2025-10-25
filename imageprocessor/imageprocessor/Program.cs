@@ -10,9 +10,11 @@ namespace imageprocessor
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("=== Simple Filter Tester ===");
-            Console.Write("Enter full image path: ");
-            string inputPath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\8k_test.jpg"; //@""
+            
+            string inputPath = @"D:\DEVELOPMENT\DevRepos\photoshoplike\pictures\8k_test.jpg";
+            Console.WriteLine($"Path of picture to be modified: {inputPath}, make sure its correct.");
+            Console.WriteLine("Output will be in the same folder as input.");
+
 
 
             Console.WriteLine("\nChoose a filter to apply:");
@@ -28,9 +30,9 @@ namespace imageprocessor
             Console.WriteLine("10 - Gaussian Filter (9x9)");
             Console.WriteLine("11 - Feature Point Detection");
             Console.WriteLine("12 - Histogram");
-            Console.WriteLine("13 - 3 Channel histogram");
-            Console.WriteLine("14 - histogram equali");
-            Console.WriteLine("15 - log");
+            Console.WriteLine("13 - 3 Channel histogram (no output graph, returns original picture, only 3 arrays get created)");
+            Console.WriteLine("14 - Histogram equalization");
+            Console.WriteLine("15 - Logarithmic transformation");
             Console.Write("\nEnter your choice (1–15): ");
 
             string choice = Console.ReadLine() ?? "";
