@@ -11,37 +11,7 @@ namespace imageprocessor.Filters
 {
     public class Negation
     {
-        public Bitmap NegateOld(Bitmap bitmapOriginal)//100 ms
-        {
-            int width = bitmapOriginal.Width;
-            int height = bitmapOriginal.Height;
 
-            BitmapData bitmapData = bitmapOriginal.LockBits(
-                new Rectangle(0, 0, bitmapOriginal.Width, bitmapOriginal.Height),
-                ImageLockMode.ReadWrite,
-                PixelFormat.Format24bppRgb);
-
-            int stride = bitmapData.Stride;
-            IntPtr Scan0 = bitmapData.Scan0;
-
-            unsafe
-            {
-                byte* basePointer = (byte*)Scan0;
-
-                Parallel.For(0, height, y =>
-                {
-                    byte* row = basePointer + (y * stride); // pointer to start of row
-
-                    for (int x = 0; x < width * 3; x++)
-                    {
-                        row[x] = (byte)(255 - row[x]); //negation formula
-                    }
-                });
-            }
-
-            bitmapOriginal.UnlockBits(bitmapData);
-            return bitmapOriginal;
-        }
 
         public Bitmap Negate(Bitmap bitmapOriginal) //73 ms
         {
@@ -53,14 +23,14 @@ namespace imageprocessor.Filters
                 ImageLockMode.ReadWrite,
                 PixelFormat.Format24bppRgb);
 
-            int stride = bmpData.Stride;
-            IntPtr scan0 = bmpData.Scan0;
+            int stride = bmpData.Stride; //number of bytes per row /w padding
+            IntPtr scan0 = bmpData.Scan0; //pointer to first pixel
 
             unsafe
             {
-                byte* basePtr = (byte*)scan0;
+                byte* basePtr = (byte*)scan0; //base pointer to pixel data
 
-                // Partition rows into chunks for parallel threads
+                // partition for multiple threads
                 var range = Partitioner.Create(0, height, Math.Max(1, height / Environment.ProcessorCount));
 
                 Parallel.ForEach(range, (rangeSegment) =>
@@ -70,12 +40,12 @@ namespace imageprocessor.Filters
                         byte* row = basePtr + y * stride;
                         int x = 0;
 
-                        // Process 4 pixels per iteration (loop unrolling)
+                        // process 4 pixels per iteration
                         int maxUnroll = width - 3;
-                        for (; x < maxUnroll; x += 4)
+                        for (x = x; x < maxUnroll; x += 4)
                         {
                             // pixel 0
-                            row[0] = (byte)(255 - row[0]);
+                            row[0] = (byte)(255 - row[0]); //faster then lookup even with conversion
                             row[1] = (byte)(255 - row[1]);
                             row[2] = (byte)(255 - row[2]);
                             row += 3;

@@ -18,13 +18,17 @@ namespace imageprocessor.Filters
             int width = bitmapOriginal.Width;
             int height = bitmapOriginal.Height;
 
-            // Create new 8-bit grayscale bitmap
+            // New 8-bit grayscale bitmap
             Bitmap bmp8 = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
 
             // Set grayscale palette
             ColorPalette palette = bmp8.Palette;
             for (int i = 0; i < 256; i++)
-                palette.Entries[i] = Color.FromArgb(i, i, i);
+            {
+                palette.Entries[i] = Color.FromArgb(i, i, i); //fill up 256 shades of gray
+
+            }
+
             bmp8.Palette = palette;
 
             // Lock source and destination
@@ -38,11 +42,11 @@ namespace imageprocessor.Filters
                 ImageLockMode.WriteOnly,
                 PixelFormat.Format8bppIndexed);
 
-            int srcStride = srcData.Stride;
-            int dstStride = dstData.Stride;
+            int srcStride = srcData.Stride; // number of bytes per row in source
+            int dstStride = dstData.Stride; // number of bytes per row in destination
 
-            IntPtr srcScan0 = srcData.Scan0;
-            IntPtr dstScan0 = dstData.Scan0;
+            IntPtr srcScan0 = srcData.Scan0; // pointer to the first pixel of source
+            IntPtr dstScan0 = dstData.Scan0; // pointer to the first pixel of destination
 
             const int rFactor = 77;
             const int gFactor = 150;
@@ -53,7 +57,7 @@ namespace imageprocessor.Filters
                 byte* srcBase = (byte*)srcScan0;
                 byte* dstBase = (byte*)dstScan0;
 
-                var range = Partitioner.Create(0, height, Math.Max(1, height / Environment.ProcessorCount));
+                var range = Partitioner.Create(0, height, Math.Max(1, height / Environment.ProcessorCount)); // pointer to the first pixel of destination
                 Parallel.ForEach(range, (rangeSegment) =>
                 {
                     for (int y = rangeSegment.Item1; y < rangeSegment.Item2; y++)
@@ -70,7 +74,7 @@ namespace imageprocessor.Filters
                                 byte b = srcRow[0];
                                 byte g = srcRow[1];
                                 byte r = srcRow[2];
-                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8);
+                                byte gray = (byte)((r * rFactor + g * gFactor + b * bFactor) >> 8); // fast intiger division by 256
                                 dstRow[0] = gray;
                                 srcRow += 3;
                                 dstRow += 1;
@@ -143,15 +147,15 @@ namespace imageprocessor.Filters
             IntPtr scan0 = bmpData.Scan0;
 
             // this was used in official libraries
-            const int rFactor = 77;   // ≈ 0.299 × 256
-            const int gFactor = 150;  // ≈ 0.587 × 256
-            const int bFactor = 29;   // ≈ 0.114 × 256
+            const int rFactor = 77;   // 0.299 × 256
+            const int gFactor = 150;  // 0.587 × 256
+            const int bFactor = 29;   // 0.114 × 256
 
             unsafe
             {
                 byte* basePtr = (byte*)scan0;
 
-                // Partition rows
+                // partition rows
                 var range = Partitioner.Create(0, height, Math.Max(1, height / Environment.ProcessorCount)); //devide into chunks (tuples) roughly height / number of cores
                 Parallel.ForEach(range, (rangeSegment) =>
                 {
@@ -160,7 +164,7 @@ namespace imageprocessor.Filters
                         byte* row = basePtr + y * stride;
                         int x = 0;
 
-                        // Process 4 pixels per iteration as unrolling
+                        // process 4 pixels per iteration as unrolling
                         int maxUnroll = width - 3;
                         for (; x < maxUnroll; x += 4)
                         {

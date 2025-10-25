@@ -12,7 +12,7 @@ namespace imageprocessor.Filters
 {
     public class HistogramCalc //Only first 2 useful and optimized, graph also unoptimzed
     {
-        public int[] CalculateHistogram8Bit(Bitmap grayBitmap)
+        public int[] CalculateHistogram8Bit(Bitmap grayBitmap) // 24 ms
         {
             int width = grayBitmap.Width;
             int height = grayBitmap.Height;
@@ -67,7 +67,7 @@ namespace imageprocessor.Filters
             return globalHist;
         } //24ms
 
-        public (int[] redHist, int[] greenHist, int[] blueHist) CalculateHistogramRGB(Bitmap bitmapOriginal)
+        public (int[] redHist, int[] greenHist, int[] blueHist) CalculateHistogramRGB(Bitmap bitmapOriginal) //100 ms
         {
             int width = bitmapOriginal.Width;
             int height = bitmapOriginal.Height;

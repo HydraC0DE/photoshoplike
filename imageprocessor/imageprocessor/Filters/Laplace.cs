@@ -11,80 +11,25 @@ namespace imageprocessor.Filters
 {
     internal class Laplace
     {
-        public Bitmap ApplyLaplace4Old(Bitmap bitmapOriginal) // 300 ms
+        
+        public Bitmap ApplyLaplace(Bitmap bitmapOriginal) //242 ms
         {
+            // 0 -1 0
+            // -1 4 -1
+            // 0 -1 0
             int width = bitmapOriginal.Width;
             int height = bitmapOriginal.Height;
 
-            BitmapData bitmapData = bitmapOriginal.LockBits(
-                new Rectangle(0, 0, width, height),
-                ImageLockMode.ReadOnly,
-                PixelFormat.Format24bppRgb);
-
-            int stride = bitmapData.Stride;
-            IntPtr Scan0 = bitmapData.Scan0;
-
-            // Create a result bitmap to write to
-            Bitmap resultBitmap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
-            BitmapData resultData = resultBitmap.LockBits(
-                new Rectangle(0, 0, width, height),
-                ImageLockMode.WriteOnly,
-                PixelFormat.Format24bppRgb);
-
-            unsafe
-            {
-                byte* srcBase = (byte*)Scan0;
-                byte* dstBase = (byte*)resultData.Scan0;
-
-                Parallel.For(1, height - 1, y =>
-                {
-                    byte* srcRow = srcBase + (y * stride);
-                    byte* dstRow = dstBase + (y * stride);
-
-                    for (int x = 1; x < width - 1; x++)
-                    {
-                        byte* center = srcRow + x * 3;
-                        byte* top = srcRow - stride + x * 3;
-                        byte* bottom = srcRow + stride + x * 3;
-                        byte* left = center - 3;
-                        byte* right = center + 3;
-
-                        for (int c = 0; c < 3; c++) // B, G, R
-                        {
-                            int newVal =
-                                (4 * center[c]) -
-                                top[c] -
-                                bottom[c] -
-                                left[c] -
-                                right[c];
-
-                            newVal = Math.Max(0, Math.Min(255, newVal));
-                            dstRow[x * 3 + c] = (byte)newVal;
-                        }
-                    }
-                });
-            }
-
-            bitmapOriginal.UnlockBits(bitmapData);
-            resultBitmap.UnlockBits(resultData);
-
-            return resultBitmap;
-        }
-
-        public Bitmap ApplyLaplace4_CacheFriendly(Bitmap bitmapOriginal) //242
-        {
-            int width = bitmapOriginal.Width;
-            int height = bitmapOriginal.Height;
-
+            // lock source bitmap for reading pixel data
             BitmapData srcData = bitmapOriginal.LockBits(
                 new Rectangle(0, 0, width, height),
                 ImageLockMode.ReadOnly,
                 PixelFormat.Format24bppRgb);
 
-            int stride = srcData.Stride;
-            IntPtr srcScan0 = srcData.Scan0;
+            int stride = srcData.Stride;   // number of bytes per row (including padding)
+            IntPtr srcScan0 = srcData.Scan0; // pointer to first pixel in memory
 
-            // Create output bitmap (same pixel format)
+            // create output bitmap and lock it for writing
             Bitmap resultBitmap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
             BitmapData dstData = resultBitmap.LockBits(
                 new Rectangle(0, 0, width, height),
@@ -93,37 +38,32 @@ namespace imageprocessor.Filters
 
             unsafe
             {
-                byte* srcBase = (byte*)srcScan0;
-                byte* dstBase = (byte*)dstData.Scan0;
+                byte* srcBase = (byte*)srcScan0; // base pointer to input pixels
+                byte* dstBase = (byte*)dstData.Scan0; // base pointer to output pixels
 
-                // Process rows 1 .. height-2 (skip image borders)
+                // process image rows in parallel (excluding top and bottom borders)
                 Parallel.For(1, height - 1, y =>
                 {
-                    // Pointers to the three rows we'll read from
-                    byte* prevRow = srcBase + (y - 1) * stride;
-                    byte* curRow = srcBase + (y) * stride;
-                    byte* nextRow = srcBase + (y + 1) * stride;
+                    // get pointers to the three neighboring rows
+                    byte* prevRow = srcBase + (y - 1) * stride; // row above
+                    byte* curRow = srcBase + y * stride;        // current row
+                    byte* nextRow = srcBase + (y + 1) * stride; // row below
 
-                    // Destination row pointer
+                    // pointer to the destination row
                     byte* outRow = dstBase + y * stride;
 
-                    // We will iterate x = 1 .. width-2 (skip border columns)
+                    // define horizontal processing limits (skip first and last column)
                     int rightBound = width - 1;
-
-                    // Use local variables to avoid repeated capture
                     int w = width;
 
+                    // process each pixel except image borders
                     for (int x = 1; x < rightBound; x++)
                     {
-                        int baseIdx = x * 3; // index into the row for channel 0 (B)
+                        int baseIdx = x * 3;  // pixel start index in row (3 bytes per pixel)
+                        int leftIdx = baseIdx - 3;  // left neighbor index
+                        int rightIdx = baseIdx + 3; // right neighbor index
 
-                        // Read neighbors and center for the three channels
-                        // Access pattern: prevRow[baseIdx + c], curRow[baseIdx + c], nextRow[baseIdx + c]
-                        // and left: curRow[baseIdx - 3], right: curRow[baseIdx + 3]
-                        int leftIdx = baseIdx - 3;
-                        int rightIdx = baseIdx + 3;
-
-                        // Blue channel (c = 0)
+                        // blue channel
                         {
                             int center = curRow[baseIdx + 0];
                             int top = prevRow[baseIdx + 0];
@@ -131,13 +71,13 @@ namespace imageprocessor.Filters
                             int left = curRow[leftIdx + 0];
                             int right = curRow[rightIdx + 0];
 
-                            int val = (4 * center) - top - bottom - left - right;
+                            int val = (4 * center) - top - bottom - left - right; // laplace 4-neighbor filter
                             if (val < 0) val = 0;
                             else if (val > 255) val = 255;
                             outRow[baseIdx + 0] = (byte)val;
                         }
 
-                        // Green channel (c = 1)
+                        // green channel
                         {
                             int center = curRow[baseIdx + 1];
                             int top = prevRow[baseIdx + 1];
@@ -151,7 +91,7 @@ namespace imageprocessor.Filters
                             outRow[baseIdx + 1] = (byte)val;
                         }
 
-                        // Red channel (c = 2)
+                        // red channel
                         {
                             int center = curRow[baseIdx + 2];
                             int top = prevRow[baseIdx + 2];
@@ -166,20 +106,20 @@ namespace imageprocessor.Filters
                         }
                     }
 
-                    // set border pixels to zero
-                    // Left border (x=0)
-                    outRow[0] = outRow[1] = outRow[2] = 0;
-                    // Right border (x = width-1)
-                    int rb = (w - 1) * 3;
-                    outRow[rb + 0] = outRow[rb + 1] = outRow[rb + 2] = 0;
+                    // set left and right border pixels to zero but its not noticable so its commented
+                    //outRow[0] = outRow[1] = outRow[2] = 0; // left edge
+                    //int rb = (w - 1) * 3;
+                    //outRow[rb + 0] = outRow[rb + 1] = outRow[rb + 2] = 0; // right edge
                 });
             }
 
+            // unlock both bitmaps to apply changes
             bitmapOriginal.UnlockBits(srcData);
             resultBitmap.UnlockBits(dstData);
 
-            return resultBitmap;
+            return resultBitmap; // return the filtered image
         }
+
 
 
     }

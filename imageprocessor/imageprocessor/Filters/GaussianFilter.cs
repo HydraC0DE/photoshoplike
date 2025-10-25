@@ -40,24 +40,24 @@ namespace imageprocessor.Filters
 
                     for (int x = 1; x < width - 1; x++)
                     {
-                        // Pointers to the 3 rows around the pixel
+                        // pointers to the 3 rows around the pixel
                         byte* rowAbove = srcBase + (y - 1) * stride + (x - 1) * 3;
                         byte* rowCurrent = srcBase + y * stride + (x - 1) * 3;
                         byte* rowBelow = srcBase + (y + 1) * stride + (x - 1) * 3;
 
-                        // Blue channel
+                        // b
                         int sumB =
                             rowAbove[0] + 2 * rowAbove[3] + rowAbove[6] +
                             2 * rowCurrent[0] + 4 * rowCurrent[3] + 2 * rowCurrent[6] +
                             rowBelow[0] + 2 * rowBelow[3] + rowBelow[6];
 
-                        // Green channel
+                        // g
                         int sumG =
                             rowAbove[1] + 2 * rowAbove[4] + rowAbove[7] +
                             2 * rowCurrent[1] + 4 * rowCurrent[4] + 2 * rowCurrent[7] +
                             rowBelow[1] + 2 * rowBelow[4] + rowBelow[7];
 
-                        // Red channel
+                        // r
                         int sumR =
                             rowAbove[2] + 2 * rowAbove[5] + rowAbove[8] +
                             2 * rowCurrent[2] + 4 * rowCurrent[5] + 2 * rowCurrent[8] +
@@ -100,7 +100,7 @@ namespace imageprocessor.Filters
                 byte* srcBase = (byte*)srcData.Scan0;
                 byte* tmpBase = (byte*)tempData.Scan0;
 
-                // ---------- HORIZONTAL PASS ----------
+                
                 Parallel.For(4, height - 4, y =>
                 {
                     byte* srcRow = srcBase + y * stride;
@@ -140,7 +140,7 @@ namespace imageprocessor.Filters
                 byte* tmpBase2 = (byte*)tempData.Scan0;
                 byte* dstBase = (byte*)dstData.Scan0;
 
-                // ---------- VERTICAL PASS ----------
+                
                 Parallel.For(4, height - 4, y =>
                 {
                     byte* dstRow = dstBase + y * stride;

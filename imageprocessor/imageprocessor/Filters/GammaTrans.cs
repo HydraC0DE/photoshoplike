@@ -11,52 +11,9 @@ namespace imageprocessor.Filters
 {
     public class GammaTrans
     {
-        public Bitmap ApplyGammaOld(Bitmap bitmapOriginal, double redGamma, double greenGamma, double blueGamma) //122
-        {
-            int width = bitmapOriginal.Width;
-            int height = bitmapOriginal.Height;
+      
 
-            BitmapData bitmapData = bitmapOriginal.LockBits(
-        new Rectangle(0, 0, width, height),
-        ImageLockMode.ReadWrite,
-        PixelFormat.Format24bppRgb);
-
-            int stride = bitmapData.Stride;
-            IntPtr Scan0 = bitmapData.Scan0;
-
-            byte[] redGammaTable = new byte[256];
-            byte[] greenGammaTable = new byte[256];
-            byte[] blueGammaTable = new byte[256];
-            
-            for (int i = 0; i < 256; ++i)
-            {
-                redGammaTable[i] = (byte)Math.Min(255, (int)((255.0 * Math.Pow(i / 255.0, 1.0 / redGamma)) + 0.5));
-                greenGammaTable[i] = (byte)Math.Min(255, (int)((255.0 * Math.Pow(i / 255.0, 1.0 / greenGamma)) + 0.5));
-                blueGammaTable[i] = (byte)Math.Min(255, (int)((255.0 * Math.Pow(i / 255.0, 1.0 / blueGamma)) + 0.5));
-            }
-            unsafe
-            {
-                byte* basePointer = (byte*)Scan0;
-                Parallel.For(0, height, y =>
-                {
-                    byte* row = basePointer + (y * stride); // pointer to start of row
-
-                    for (int x = 0; x < width; x++)
-                    {
-                        row[0] = blueGammaTable[row[0]]; //b
-                        row[1] = greenGammaTable[row[1]];   // g
-                        row[2] = redGammaTable[row[2]]; // r
-
-                        row += 3; // move to next pixel
-                    }
-                });
-            }
-
-            bitmapOriginal.UnlockBits(bitmapData);
-            return bitmapOriginal;
-        }
-
-        public Bitmap ApplyGamma(Bitmap bitmapOriginal, double redGamma, double greenGamma, double blueGamma) //102
+        public Bitmap ApplyGamma(Bitmap bitmapOriginal, double redGamma, double greenGamma, double blueGamma) //102 ms
         {
             int width = bitmapOriginal.Width;
             int height = bitmapOriginal.Height;
@@ -69,7 +26,7 @@ namespace imageprocessor.Filters
             int stride = bmpData.Stride;
             IntPtr scan0 = bmpData.Scan0;
 
-            // Precompute gamma lookup tables
+            // gamma lookuptables
             byte[] redGammaTable = new byte[256];
             byte[] greenGammaTable = new byte[256];
             byte[] blueGammaTable = new byte[256];
@@ -78,9 +35,9 @@ namespace imageprocessor.Filters
             double invGreen = 1/ greenGamma;
             double invRed = 1 / redGamma;
 
-            for (int i = 0; i < 256; ++i)
+            for (int i = 0; i < 256; ++i) // fill lookup tables
             {
-                double normalized = i / 255.0;
+                double normalized = i / 255.0; //small speedup, couldnt find a way around conversions
 
                 redGammaTable[i] = (byte)(Math.Pow(normalized, invRed) * 255.0 + 0.5);
                 greenGammaTable[i] = (byte)(Math.Pow(normalized, invGreen) * 255.0 + 0.5);
@@ -91,7 +48,7 @@ namespace imageprocessor.Filters
             {
                 byte* basePtr = (byte*)scan0;
 
-                // Partition rows into chunks for parallel threads
+                // partition rows into chunks for parallel threads
                 var range = Partitioner.Create(0, height, Math.Max(1, height / Environment.ProcessorCount));
                 Parallel.ForEach(range, (rangeSegment) =>
                 {

@@ -31,7 +31,7 @@ namespace imageprocessor
             Console.WriteLine("13 - 3 Channel histogram");
             Console.WriteLine("14 - histogram equali");
             Console.WriteLine("15 - log");
-            Console.Write("\nEnter your choice (1–12): ");
+            Console.Write("\nEnter your choice (1–15): ");
 
             string choice = Console.ReadLine() ?? "";
             if (!int.TryParse(choice, out int selected) || selected < 1 || selected > 15)
@@ -81,7 +81,7 @@ namespace imageprocessor
 
                 case 6:
                     sw.Start();
-                    output = new Laplace().ApplyLaplace4_CacheFriendly(input);
+                    output = new Laplace().ApplyLaplace(input);
                     break;
 
                 case 7:
